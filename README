@@ -1,0 +1,4 @@
+Some web-scrapers to be able to monitor product prices on main online shopping platforms.
+Implemented and working : scrape_amazon -> still gotta manage multiple item monitoring
+TODO : finish scrape_ali (express)
+TODO : manage multiple item monitoring and csv files interaction
