@@ -1,48 +1,31 @@
-import requests
+import requests, sys, csv, json, pprint
+from subprocess import check_output
 from bs4 import BeautifulSoup
-import csv
 
-def get_price(s,url):
-    HEADERS = ({'User-Agent':
-            'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
-            'Accept-Language': 'en-US, en;q=0.5'})
-    page = requests.get(url, headers=HEADERS)
-    #print(page.content)
-    soup = BeautifulSoup(page.content, "lxml")
-    name = soup.find(class_="text").get_text().strip()
-    # sometimes there isn't a priceblock with "ourprice" id, cause it's in sale
-    try:
-        price = float(soup.find(id='priceblock_ourprice').get_text())
-    except:
-        # this part gets the price in dollars from amazon.com store
-        try:
-            price = float(soup.find(id='priceblock_saleprice').get_text())
-        except:
-            price = ''
-    print(name, price)
+def get_data(url, out_writer):
+    page = requests.get(url).text
+    soup = BeautifulSoup(page, 'lxml')
+    for script in soup.find_all('script'):
+        if "runParams" in str(script):
+            clean_script = script.text.strip()
+            #print(clean_script)
+            with open('temp.js','w') as f:
+                f.write('window = {};\n'+clean_script+';\nprocess.stdout.write(JSON.stringify(window.runParams));')
+            window_runParams = check_output(['node','temp.js'])
+            data_json = json.loads(window_runParams)
+            try:
+                price = data_json['data']['middleBannerModule']['uniformMiddleBanner']['price']
+            except:
+                try:
+                    price = data_json['data']['priceModule']['formatedActivityPrice']
+                except:
+                    price = data_json['data']['priceModule']['formatedPrice']
+            name = data_json['data']['pageModule']['title']
+            out_writer.writerow([name, price])
 
-
-
-with open('products.csv', 'r') as csv_file:
-    reader = csv.reader(csv_file)
-
-    for row in reader:
-        with requests.Session() as s:
-            get_price(s, row[0])
-
-
-"""
-def get_reviews(s,url):
-    s.headers['User-Agent'] = 'Mozilla/5.0'
-    response = s.get(url)
-    print(response.content)
-    soup = BeautifulSoup(response.text,"lxml")
-    return soup.find_all("span",{"id":"priceblock_saleprice"})
-
-if __name__ == '__main__':
-    link = 'https://www.amazon.it/Anti-Ghosting-Arcobaleno-Multicolore-Illuminata-Mechanical/dp/B07YDK27GN/'    
-    with requests.Session() as s:
-        for review in get_reviews(s,link):
-            print(f'{review.text}\n')
-            
-"""
+with open('ali_prices.csv', mode = 'w') as out_file:
+    out_writer = csv.writer(out_file, delimiter = ',')
+    with open('ali_products.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            get_data(row[0], out_writer)
