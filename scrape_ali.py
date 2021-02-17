@@ -30,19 +30,3 @@ with open('products.csv', 'r') as csv_file:
         with requests.Session() as s:
             get_price(s, row[0])
 
-
-"""
-def get_reviews(s,url):
-    s.headers['User-Agent'] = 'Mozilla/5.0'
-    response = s.get(url)
-    print(response.content)
-    soup = BeautifulSoup(response.text,"lxml")
-    return soup.find_all("span",{"id":"priceblock_saleprice"})
-
-if __name__ == '__main__':
-    link = 'https://www.amazon.it/Anti-Ghosting-Arcobaleno-Multicolore-Illuminata-Mechanical/dp/B07YDK27GN/'    
-    with requests.Session() as s:
-        for review in get_reviews(s,link):
-            print(f'{review.text}\n')
-            
-"""
